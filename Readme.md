@@ -55,4 +55,4 @@ MS in Business Analytics
 
 
 
-> _This project is intended for data analysis practice using real-world datasets and does not reflect any commercial use of the data.
+This project is intended for data analysis practice using real-world datasets and does not reflect any commercial use of the data.
