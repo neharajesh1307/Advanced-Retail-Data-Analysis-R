@@ -1,0 +1,440 @@
+---
+title: "Advance Data Analysis Using R"
+author: "Neha"
+format: html
+---
+## Introduction
+This project explores advanced retail analytics by integrating three datasets: Superstore sales data, Customer Analytics, and Income & Demographics. Together, these datasets provide a comprehensive view of customer behavior, sales performance, and socio-economic factors. By combining descriptive and inferential analysis techniques, the project delivers actionable insights to support smarter sales, marketing, and logistics decisions.
+  
+
+## Dataset Overview
+The study employs three complementary datasets to gain more insightful knowledge into retail sales, customer analytics, and socio-economic variables.  
+Superstore dataset: Includes actual retail sales data, allowing for the examination of profitability, sales trends, and delivery performance.  
+Customer Analytics dataset: Provides data about customer behavior, product importance, shipment modes, and customer satisfaction.  
+Income and Demographics dataset: Provides socio-economic background pertaining to customers, which aids in the determination of customer segments based on income and demographics.  
+Dataset link: [Superstore Dataset](https://www.kaggle.com/datasets/vivek468/superstore-dataset-final) , [E-Commerce Shipping Data](https://www.kaggle.com/datasets/prachi13/customer-analytics), [income classification](https://www.kaggle.com/datasets/vardhansiramdasu/income)
+
+## Workflow
+Mermaid Diagram
+
+```{mermaid, engine='mermaid'}
+graph TD
+  A[Load Datasets] --> B1[Superstore Dataset]
+  A --> B2[Customer Analytics Dataset]
+  A --> B3[Income & Demographic Dataset]
+  B1 --> C1[Explore Superstore]
+  B2 --> C2[Explore Customer Data]
+  B3 --> C3[Explore Income Data]
+  C1 --> D1[Clean Superstore]
+  C2 --> D2[Clean Customer Data]
+  C3 --> D3[Clean Income Data]
+  D1 --> E[Conceptual Dataset Integration]
+  D2 --> E
+  D3 --> E
+  E --> F1[Descriptive Analysis]
+  E --> F2[Inferential Analysis]
+  
+  F1 --> G1[Sales & Discount]
+  F1 --> G2[Customer Ratings]
+  F1 --> G3[Salary Distribution by job type]
+  F1 --> G4[Leaflet Sales Map]
+  
+  F2 --> H1[ANOVA: Income vs Sales]
+  F2 --> H2[GLM: Discounts vs Factors]
+  F2 --> H3[GAM: Delivery Delays]
+  
+  G1 --> I1[Plotly Visualizations]
+  G2 --> I2[Customer Behavior Patterns]
+  G3 --> I3[Occupation Trend Insights]
+
+  H1 --> I4[No Income Impact Found]
+  H2 --> I5[Product Importance Influences Discounts]
+  H3 --> I6[Regional Delay Variation Found]
+ 
+```
+
+## Loading & Exploring the Datasets
+
+# Loading required libraries
+```{r setup ,message=FALSE,warning=FALSE}
+
+library(tidyverse) # Data manipulation & visualization
+library(readr)     # For reading CSV files
+library(lubridate) # For handling dates 
+library(ggplot2)   # Data visualization
+library(dplyr)     # Data visualization
+library(skimr)     # For dataset exploration
+library(plotly)    # For interactive visualization
+library(leaflet)   # Geographical analysis
+library(maps)      # For US state coordinates
+library(mgcv)      # For GLM/GAM model
+library(viridis)   # For GLM/GAM model
+```
+
+# Reading the dataset (CSV file)
+```{r}
+# Load the Superstore dataset 
+superstore <- read_csv("Sample - Superstore for R.csv",show_col_types = FALSE)
+
+# Load the Customer Analytics dataset 
+customer_analytics <- read_csv("Customer_Analytics.csv",show_col_types = FALSE)
+
+# Load the Income dataset 
+income_data <- read_csv("income.csv", show_col_types = FALSE)
+```
+
+# Exploring Superstore Dataset @superstore_dataset
+```{r, warning= FALSE}
+# Check structure of superstore dataset
+str(superstore)
+
+# Summarize the superstore dataset
+summary(superstore)
+
+# Quick overview using skim
+skim(superstore)
+```
+The Superstore dataset contains sales records with Order Date, Ship Mode, customer information, Region, product categories, and financial information like Sales, Profit, and Discount 
+
+# Exploring Customer Analytics Dataset @customer_analytics
+```{r,warning= FALSE}
+# Check structure of customer analytics dataset
+str(customer_analytics)
+
+# Summarize the customer analytics dataset
+summary(customer_analytics)
+
+# Quick overview using skim
+skim(customer_analytics)
+```
+The Customer Analytics dataset provides customer-centric information such as Customer_rating, Cost_of_Product, Prior_purchases, Gender, Discount_offered, and shipping performance indicated by Reached.on.Time_Y.N. It helps in understanding customer satisfaction and delivery efficiency.
+
+# Exploring Income Dataset @income_dataset
+```{r, warning= FALSE}
+# Check structure of income dataset
+str(income_data)
+
+# Summarize the income dataset
+summary(income_data)
+
+# Quick overview using skim
+skim(income_data)
+```
+The Income dataset captures demographic data, including age, JobType, EdType, occupation, and SalStat (Income status). This dataset can help to understand demographic patterns and correlate them to customer segments and buying behavior.
+
+## Data Preprocessing
+Before conducting analysis, ensured each dataset was clean by handling missing values, formatting date field, conversion of categorical values and replacing unknown values.
+
+# For Superstore Dataset
+```{r}
+# Converting dates into proper format
+superstore <- superstore %>%
+  mutate(`Order Date` = mdy(`Order Date`),
+         `Ship Date` = mdy(`Ship Date`))
+
+# Checking for missing values
+missing_values_superstore <- colSums(is.na(superstore))
+
+# Removing duplicates values
+superstore <- superstore %>% distinct()
+```
+In this dataset converted date columns to appropriate date formats,checked and removed duplicates and then handled missing values.
+
+# For Customer Analytics Dataset
+```{r}
+# Checking missing values
+missing_values_customer <- colSums(is.na(customer_analytics))
+
+# Removing duplicate rows
+customer_analytics <- customer_analytics %>% distinct()
+
+# Converting categorical columns to factors
+customer_analytics <- customer_analytics %>%
+  mutate(
+    Warehouse_block = as.factor(Warehouse_block),
+    Mode_of_Shipment = as.factor(Mode_of_Shipment),
+    Product_importance = as.factor(Product_importance),
+    Gender = as.factor(Gender),
+  )
+```
+In this dataset checked and handled missing or duplicate entries and converted categorical variables into factors.
+ 
+# For Income Dataset
+```{r}
+# Replacing '?' with NA and remove rows containing NA
+income_data[income_data == "?"] <- NA
+income_data <- income_data %>% na.omit()
+
+# Converting categorical columns to factors
+income_data <- income_data %>%
+  mutate(
+    JobType = as.factor(JobType),
+    EdType = as.factor(EdType),
+    maritalstatus = as.factor(maritalstatus),
+    occupation = as.factor(occupation),
+    relationship = as.factor(relationship),
+    race = as.factor(race),
+    gender = as.factor(gender),
+    nativecountry = as.factor(nativecountry),
+    SalStat = as.factor(SalStat)
+  )
+```
+In this dataset identified and replaced unknown values ('?') with NA, then removed these rows.Converted appropriate columns to categorical data type.
+
+## Dataset Integration & Conceptual Understanding
+
+Instead of doing direct database joins, we're conceptually combining the datasets. Every dataset contributes something unique which can be helpful for bringing meaningful insights.
+
+**Superstore Dataset**: Main transactional data with complete sales and profit details.  
+**Customer Analytics Dataset**: Facilitates analysis of customer interest, shipping satisfaction, and product significance, strengthening our understanding of customers behavior.  
+**Income & Demographic Dataset**: Offers socio-economic information, and thereby we discover how income and demographics relate to purchasing behavior.
+
+Comparing these datasets together enables us to understand the relationship between customer satisfaction, demographics, and sales performance, which will enable targeted marketing initiatives and sound business decisions.
+
+## Descriptive Analysis for Each Dataset
+
+# Superstore Dataset - Sales & Profit Analysis
+```{r}
+
+# Plot sales distribution with limited x-axis range
+plot_ly(superstore, x = ~Sales, type = "histogram",
+        marker = list(color = 'blue', opacity = 0.6),
+        autobinx = FALSE,  # Disable auto binning
+        xbins = list(size = 50)) %>%  # Set manual bin width
+  layout(title = "Sales Distribution",
+         xaxis = list(title = "Sales Amount ($)", 
+                      tickformat = ".2f",
+                      range = c(0, 2000), 
+                      dtick = 200), 
+         yaxis = list(title = "Count"))
+
+
+# Created interactive histogram for 3 categories
+plot_ly(superstore, x = ~Sales, type = "histogram",
+        split = ~Category,  
+        marker = list(opacity = 0.6),
+        autobinx = FALSE, 
+        xbins = list(size = 50)) %>%
+  layout(title = "Sales Distribution by Product Category",
+         xaxis = list(title = "Sales Amount ($)", range = c(0, 1500), dtick = 200), 
+         yaxis = list(title = "Count", range = c(0, 2000)),  
+         barmode = "overlay")  
+
+```
+The sales histogram is **right-skewed**, so the majority of sales are low to moderate with some high sales. If we consider the categories of products, **Office Supplies and Furniture tend to have low sales values**, whereas **Technology has higher sales values**, but they occur less frequently. This can assist us in determining how much money each department earns and where we can attempt to boost sales.
+
+# Customer Analytics Dataset - Customer Ratings & Discounts
+```{r}
+# Summary statistics for customer rating & discount
+summary(customer_analytics %>% select(Customer_rating, Discount_offered, Prior_purchases))
+
+# Interactive Histogram - Customer Rating Distribution
+customer_rating_plot <- ggplot(customer_analytics, aes(x = Customer_rating)) +
+  geom_bar(fill = "purple", alpha = 0.7) +
+  labs(title = "Customer Rating Distribution", x = "Rating", y = "Count") +
+  theme_minimal()
+ggplotly(customer_rating_plot)
+
+# Group discounts into bins (ranges)
+customer_analytics <- customer_analytics %>%
+  mutate(Discount_Group = case_when(
+    Discount_offered <= 10 ~ "0-10%",
+    Discount_offered > 10 & Discount_offered <= 20 ~ "10-20%",
+    Discount_offered > 20 & Discount_offered <= 30 ~ "20-30%",
+    Discount_offered > 30 & Discount_offered <= 40 ~ "30-40%",
+    Discount_offered > 40 ~ "40%+"
+  ))
+
+# Violin plot (better visualization)
+discount_rating_violin <- ggplot(customer_analytics, aes(x = Discount_Group, y = Customer_rating, fill = Discount_Group)) +
+  geom_violin(alpha = 0.6, color = "black") +  
+  geom_boxplot(width = 0.2, color = "black", outlier.shape = NA, alpha = 0.5) +  
+  labs(title = "Customer Rating by Discount Group",
+       x = "Discount Range",
+       y = "Customer Rating") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+ggplotly(discount_rating_violin)
+
+```
+Most customers rated the experience as medium, and very few rated it very high or very low. As observed from the violin plot, **increasing the number of discounts does not have any effect on customer ratings**, but ratings increased slightly from the ones who received larger discounts. Therefore, customer satisfaction will increase slightly if there are more discounts. 
+
+
+# Income & Demographic Dataset - Income & Occupation Trends
+```{r}
+# Summary statistics for age & salary
+summary(income_data %>% select(age, SalStat))
+
+# Interactive Bar chart - Salary Distribution by Job Type
+salary_barplot <- ggplot(income_data, aes(x = JobType, fill = SalStat)) +
+  geom_bar(position = "dodge") +  # Compare count of each salary category per job type
+  labs(title = "Salary Category Distribution by Job Type", x = "Job Type", y = "Count") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))  # Rotate x-axis labels
+
+ggplotly(salary_barplot)
+
+```
+Private and self-employed occupations are most prevalent within both earning ranks. There are more Executive/Managerial and Professional Specialty occupations within the higher earning ranks and more Clerical and Sales occupations within the lower earning ranks. These are the most prevalent occupations that we would observe in the real world and are consistent with the correlation between occupation type and earning rank.
+
+## Geographical Sales Distribution Across the United States 
+This interactive map visualizes total sales distribution across various U.S. states, helping identify high-revenue regions and potential market opportunities.
+```{r, warning=FALSE}
+     
+# Aggregate total sales by state
+sales_by_region <- superstore %>%
+  group_by(State, Region) %>%
+  summarise(Total_Sales = sum(Sales, na.rm = TRUE), .groups = "drop")
+
+# Get state coordinates
+state_coordinates <- map_data("state") %>%
+  group_by(region) %>%
+  summarise(Latitude = mean(range(lat)), Longitude = mean(range(long)))
+
+# Convert state names for matching
+state_coordinates$State <- tools::toTitleCase(state_coordinates$region)
+
+# Merge sales with coordinates
+sales_map <- left_join(sales_by_region, state_coordinates, by = "State")
+sales_map <- sales_map %>% drop_na(Latitude, Longitude)
+
+# Create interactive map for sales volume
+leaflet(sales_map) %>%
+  addTiles() %>%
+  addCircleMarkers(
+    ~Longitude, ~Latitude, 
+    radius = ~sqrt(Total_Sales) / 30,  
+    color = ~colorNumeric("RdYlBu", domain = sales_map$Total_Sales)(Total_Sales), # Sales distribution color 
+    fillColor = ~colorNumeric("RdYlBu", domain = sales_map$Total_Sales)(Total_Sales),
+    fillOpacity = 0.85, 
+    popup = ~paste0("<b>", State, "</b><br>Total Sales: $", format(round(Total_Sales, 2), big.mark = ","))
+  ) %>%
+  addLegend("bottomright", 
+            pal = colorNumeric("RdYlBu", domain = sales_map$Total_Sales), 
+            values = ~Total_Sales, 
+            title = "Sales Distribution", 
+            opacity = 1)
+
+```
+## Inferential Analysis
+In Inferential analysis statistical models such as ANOVA, Generalized Linear Models (GLM), and Generalized Additive Models (GAM) are employed to determine trends and patterns in customer behavior. These models have been applied on three merged datasets – Superstore, Income, and Customer Analytics – for understanding what demographic information, delivery quality, and product characteristics have on sales, discounts, and shipping holds-up. It aids useful business insight beyond mere totals.
+
+# Anslysis 1: Relationship Between Income Levels & Purchasing Power 
+To understand how income levels impact purchasing behavior using Superstore and Income datasets.
+Hypothesis: Higher-income customers purchase more expensive products and contribute more to total revenue.
+
+```{r,warning=FALSE}
+# Categorizing income levels from income dataset
+income_data <- income_data %>%
+  mutate(Income_Category = case_when(
+    SalStat == "less than or equal to 50,000" ~ "Low Income",
+    SalStat == "greater than 50,000" ~ "High Income"
+  ))
+
+# Assign income levels to superstore data
+superstore <- superstore %>%
+  mutate(Income_Category = sample(income_data$Income_Category, n(), replace = TRUE))
+
+# Running ANOVA on assigned data
+anova_model <- aov(Sales ~ Income_Category, data = superstore)
+summary(anova_model)
+
+# Create density plot using categories
+superstore$Sales <- as.numeric(superstore$Sales)
+
+density_plot <- ggplot(superstore, aes(x = Sales, fill = Income_Category)) +
+  geom_density(alpha = 0.6) +
+  scale_x_continuous(trans = "log10") + # For better visualization
+  labs(title = "Sales Distribution by Income Levels",
+       x = "Sales Amount ($)",
+       y = "Density",
+       fill = "Income Category") +
+  theme_minimal()
+ggplotly(density_plot)
+
+```
+ANOVA reveals there is **no significant difference** in average sales among high-income and low-income members (p > 0.05). Despite some differences indicated through density plot, there is a strong indication that income will not impact much on what customers spend here. The insight changes what one would argue as a common phenomenon where high-income members will definitely spend money when there is a sale.
+
+# Anslysis 2: Discount Behavior Across Income, Delivery Performance & Product Importance
+To explore how customer demographics such as income levels, delivery performance, and product importance affect discount sensitivity using the Customer Analytics and Income datasets.  
+Hypothesis: Low-income customers and lower-priority products are associated with higher discount levels, and demographic factors influence discount which affects purchasing behavior.
+```{r,Warning =FALSE}
+# Add Income Category to Customer Analytics dataset
+customer_analytics <- customer_analytics %>%
+  mutate(Income_Category = sample(income_data$Income_Category, n(), replace = TRUE))
+
+# Convert Discount Offered to numeric 
+customer_analytics$Discount_offered <- as.numeric(customer_analytics$Discount_offered)
+
+# Convert Reached.on.Time_Y.N to factor for categorical use
+customer_analytics$Reached.on.Time_Y.N <- as.factor(customer_analytics$Reached.on.Time_Y.N)
+
+# GLM Model
+glm_discount_model <- glm(
+  Discount_offered ~ Income_Category + Product_importance + Reached.on.Time_Y.N,
+  family = gaussian(),
+  data = customer_analytics
+)
+summary(glm_discount_model)
+
+# Interactive Boxplot
+box_discount_plot <- ggplot(customer_analytics, aes(x = Income_Category, y = Discount_offered, fill = Reached.on.Time_Y.N)) +
+  geom_boxplot(alpha = 0.6) +
+  facet_wrap(~ Product_importance) +
+  labs(
+    title = "Discount Distribution by Income, Delivery Status & Product Importance",
+    x = "Income Category",
+    y = "Discount Offered (%)",
+    fill = "Delivered On Time"
+  ) +
+  theme_minimal()
+ggplotly(box_discount_plot)
+
+```
+The GLM model indicates that **product importance** (low and medium) significantly influences the size of the discount offered (p < 0.05), but income class and delivery performance are less significant. The interactive boxplot also validates that less significant products tend to receive larger discounts regardless of income class. This implies that discount policies need to concentrate more on products rather than being aimed at various demographic groups.
+
+
+# Analysis 3: Factors Influencing Delivery Delays Across States
+To explore how customer age, salary status, and customer care calls impact delivery delays using a GAM model.  
+Hypothesis: Delivery delays vary by state and are influenced by customer demographics and engagement levels, with higher care calls and certain regions contributing to increased delays.
+```{r, fig.height= 8, warning=FALSE, message=FALSE}
+# Convert dates properly
+superstore$Order_Date <- as.Date(superstore$`Order Date`, format = "%d-%m-%Y")
+superstore$Ship_Date <- as.Date(superstore$`Ship Date`, format = "%d-%m-%Y")
+
+# Create Delivery_Delay column
+superstore <- superstore %>%
+mutate(Delivery_Delay = as.numeric(Ship_Date - Order_Date))
+
+# Conceptually merge Age, Salary Status, and Customer Calls
+superstore$Age <- sample(income_data$age, nrow(superstore), replace = TRUE)
+superstore$Salary_Status <- sample(income_data$SalStat, nrow(superstore), replace = TRUE)
+superstore$Customer_Calls <- sample(customer_analytics$Customer_care_calls, nrow(superstore), replace = TRUE)
+
+# Run GAM model
+gam_model <- gam(Delivery_Delay ~ s(Age) + Salary_Status + Customer_Calls + State, data = superstore)
+summary(gam_model)
+
+# Create heatmap: Average delay by state
+heatmap_data <- superstore %>%
+  group_by(State) %>%
+  summarise(Average_Delay = mean(Delivery_Delay, na.rm = TRUE))
+heatmap_plot <- ggplot(heatmap_data, aes(x = reorder(State, Average_Delay), y = Average_Delay, fill = Average_Delay)) +
+  geom_col() +
+  coord_flip() +
+  scale_fill_viridis(option = "inferno") +
+  labs(title = "Average Delivery Delay by State",
+       x = "State", y = "Avg. Delivery Delay (Days)", fill = "Delay") +
+  theme_minimal()
+
+# Convert to interactive plot
+ggplotly(heatmap_plot)
+
+```
+The GAM model indicates that customer calls have little influence on delivery delay and that age has very slight influence. There are more distinct regional differences by state. Some states have significantly longer delays than others. These results are better understood using the interactive heatmap visualization. These results identify locations where there are issues with the delivery that may need closer examination for supply chain improvement.The GAM model indicates that customer calls have little influence on delivery delay and that age has very slight influence. There are more distinct regional differences by state. Some states have significantly longer delays than others. These results are better understood using the interactive heatmap visualization. These results identify locations where there are issues with the delivery that may need closer examination for supply chain improvement.
+
+## Conclusion
+These models taught us the influence that customer information, product attributes, and location variations have on business operation as sales and delivery.With these findings we can make data-driven decision-making in pricing, marketing, and logistics.
+
+
