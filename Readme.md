@@ -10,14 +10,14 @@ Interactive visualizations and statistical models such as ANOVA, GLM, and GAM ar
 
 ## Project Structure
 
-Advanced-Retail-Data-Analysis-R/ 
-Advanced-Retail-Data-Analysis.qmd # Main Quarto analysis file
-Datasets/   
-  Sample - Superstore for R.csv
-  Customer_Analytics.csv 
-  income.csv 
-  retail-advanced-analysis.html  # Rendered HTML report 
-  README.md  # This file
+Advanced-Retail-Data-Analysis-R/   
+Advanced-Retail-Data-Analysis.qmd # Main Quarto analysis file  
+Datasets/    
+  Sample - Superstore for R.csv  
+  Customer_Analytics.csv   
+  income.csv  
+  Advanced-Retail-Data-Analysis.html  # Rendered HTML report   
+  README.md  # This file  
 
 
 ## Key Features
